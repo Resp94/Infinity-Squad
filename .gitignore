@@ -1,0 +1,38 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Arquivos Gerados / Temporários do Projeto BMAD
+bmad_init_check.json
+init_output.json
+md_files.json
+_ul
+current_style.txt
+
+# Configurações de IDE e Locais
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.claude/
+.idea/
+*.swp
+.DS_Store
+
+# Ignorar a pasta de output em geral, MAS PERMITIR O DASHBOARD
+_bmad-output/*
+!_bmad-output/dashboard/
+
+# Ignorar logs e dependências específicas do dashboard
+_bmad-output/dashboard/node_modules/
+_bmad-output/dashboard/activity.log

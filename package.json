@@ -1,0 +1,9 @@
+{
+  "name": "bmad-protocol-workspace",
+  "version": "1.0.0",
+  "description": "Workspace para alunos do Protocolo BMAD",
+  "scripts": {
+    "bmad:setup": "node _bmad-output/dashboard/setup.js",
+    "bmad:dashboard": "npx kill-port 3105 && cd _bmad-output/dashboard && node server.js"
+  }
+}
