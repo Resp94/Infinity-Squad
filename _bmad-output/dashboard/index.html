@@ -134,8 +134,8 @@
 
         /* Winston sprite é maior que os outros, precisa de scale */
         .agent.winston {
-            transform: scale(0.6) translateY(-25px);
-            transform-origin: center center;
+            transform: scale(0.6) translateY(-20px);
+            transform-origin: bottom center;
         }
 
         /* STATUS GLOW EFFECTS */
@@ -203,6 +203,19 @@
         .chat-msg-name { color: #00E676; margin-bottom: 4px; display: block; }
 
         @keyframes float-icon { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+        /* ── SFX MUTE BUTTON ── */
+        #sfx-toggle {
+            position: absolute; bottom: 110px; right: 10px;
+            z-index: 200;
+            background: rgba(0,0,0,0.75); border: 2px solid #555;
+            color: #888; font-family: 'Press Start 2P', cursive; font-size: 14px;
+            padding: 6px 8px; cursor: pointer; border-radius: 4px;
+            transition: border-color 0.2s, color 0.2s;
+            line-height: 1;
+        }
+        #sfx-toggle:hover { border-color: #00E676; color: #FFF; }
+        #sfx-toggle.active { border-color: #00E676; color: #00E676; }
     </style>
 </head>
 <body>
@@ -215,6 +228,7 @@
             <div id="dialog-box">
                 <p id="dialog-text">Infinity Squad pronto para trabalhar, dê seu comando</p>
             </div>
+            <button id="sfx-toggle" title="Ativar/Desativar Sons">🔇</button>
         </div>
         <div id="chat-panel">
             <div id="chat-header">▶ INFINITY COMMS</div>
@@ -229,6 +243,90 @@
             reconnectionAttempts: Infinity,
             reconnectionDelay: 1000
         });
+
+        // ── SFX ENGINE (Web Audio API - 8-bit procedural sounds) ──
+        const sfx = (() => {
+            let ctx = null;
+            let muted = localStorage.getItem('sfx-muted') !== 'false'; // default muted
+
+            function getCtx() {
+                if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (ctx.state === 'suspended') ctx.resume();
+                return ctx;
+            }
+
+            function playTone(freq, duration, type = 'square', gain = 0.08, startTime = 0) {
+                if (muted) return;
+                const c = getCtx();
+                const osc = c.createOscillator();
+                const g = c.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, c.currentTime + startTime);
+                g.gain.setValueAtTime(gain, c.currentTime + startTime);
+                g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + startTime + duration);
+                osc.connect(g);
+                g.connect(c.destination);
+                osc.start(c.currentTime + startTime);
+                osc.stop(c.currentTime + startTime + duration);
+            }
+
+            return {
+                get muted() { return muted; },
+
+                toggle() {
+                    muted = !muted;
+                    localStorage.setItem('sfx-muted', muted);
+                    const btn = document.getElementById('sfx-toggle');
+                    btn.textContent = muted ? '🔇' : '🔊';
+                    btn.classList.toggle('active', !muted);
+                    if (!muted) this.statusChange('working'); // feedback sonoro ao ligar
+                },
+
+                init() {
+                    const btn = document.getElementById('sfx-toggle');
+                    btn.textContent = muted ? '🔇' : '🔊';
+                    btn.classList.toggle('active', !muted);
+                    btn.addEventListener('click', () => this.toggle());
+                },
+
+                // Blip curto para cada caractere do typewriter
+                typeBlip() {
+                    playTone(440 + Math.random() * 60, 0.03, 'square', 0.04);
+                },
+
+                // Burst curto de teclado mecanico (apenas ao iniciar working)
+                keyboardBurst() {
+                    if (muted) return;
+                    const keys = 8 + Math.floor(Math.random() * 6); // 8-13 teclas
+                    let t = 0;
+                    for (let i = 0; i < keys; i++) {
+                        const freq = 300 + Math.random() * 300;
+                        const gap = 0.05 + Math.random() * 0.1;
+                        playTone(freq, 0.025, 'square', 0.05, t);
+                        t += gap;
+                    }
+                },
+
+                // Arpejos/acordes para mudanca de status
+                statusChange(status) {
+                    if (status === 'working') {
+                        // Arpejo ascendente C5-E5-G5
+                        playTone(523, 0.08, 'square', 0.07, 0);
+                        playTone(659, 0.08, 'square', 0.07, 0.09);
+                        playTone(784, 0.12, 'square', 0.07, 0.18);
+                    } else if (status === 'waiting') {
+                        // 2 tons descendentes
+                        playTone(392, 0.12, 'triangle', 0.06, 0);
+                        playTone(262, 0.15, 'triangle', 0.06, 0.13);
+                    } else {
+                        // Acorde suave de conclusao
+                        playTone(262, 0.25, 'sine', 0.05, 0);
+                        playTone(330, 0.25, 'sine', 0.04, 0);
+                        playTone(392, 0.25, 'sine', 0.03, 0);
+                    }
+                }
+            };
+        })();
         
         // ... (agentsData mapping remains same) ...
         const agentsData = [
@@ -237,7 +335,7 @@
             { id: 'amelia', name: "Amelia", role: "Dev", image: 'Amelia (1).png', x: 30, y: 33, desk: 'PA (1).png' },
             { id: 'john', name: "John", role: "PM", image: 'John (1).png', x: 70, y: 33, desk: 'PA (1).png' },
             { id: 'paige', name: "Paige", role: "Writer", image: 'Paige (1).png', x: 90, y: 36, desk: 'PA (1).png' },
-            { id: 'winston', name: "Winston", role: "Architect", image: 'Winston (1).png', x: 10, y: 66, desk: 'PA (1).png' },
+            { id: 'winston', name: "Winston", role: "Architect", image: 'Winston (1).png', x: 10, y: 68, desk: 'PA (1).png' },
             { id: 'quinn', name: "Quinn", role: "QA", image: 'Quin (1).png', x: 30, y: 68, desk: 'PA (1).png' },
             { id: 'bob', name: "Bob", role: "SM", image: 'Bob (1).png', x: 50, y: 68, desk: 'PA (1).png' },
             { id: 'barry', name: "Barry", role: "Quick Dev", image: 'Barry (1).png', x: 70, y: 68, desk: 'PA (1).png' },
@@ -256,7 +354,7 @@
             if (isTyping) { typeQueue.push(text); return; }
             isTyping = true; dialogText.textContent = ''; let i = 0;
             function nextChar() {
-                if (i < text.length) { dialogText.textContent += text[i++]; setTimeout(nextChar, 25); }
+                if (i < text.length) { dialogText.textContent += text[i++]; sfx.typeBlip(); setTimeout(nextChar, 25); }
                 else { isTyping = false; if (typeQueue.length > 0) setTimeout(() => typeWriter(typeQueue.shift()), 800); }
             }
             nextChar();
@@ -321,16 +419,20 @@
             if (deskEl) deskEl.classList.remove('state-working', 'state-waiting');
 
             if(status === 'working') {
+                const wasWorking = a.status === 'working';
                 a.status = 'working';
                 a.agentEl.classList.add('working', 'state-working');
                 if (deskEl) deskEl.classList.add('state-working');
                 document.getElementById(`bubble-${id}`).innerText = '💻';
+                if (!wasWorking) { sfx.statusChange('working'); sfx.keyboardBurst(); }
             } else if(status === 'waiting') {
                 a.status = 'waiting';
                 a.agentEl.classList.add('state-waiting');
                 if (deskEl) deskEl.classList.add('state-waiting');
                 document.getElementById(`bubble-${id}`).innerText = '⏳';
+                sfx.statusChange('waiting');
             } else {
+                if (a.status !== 'idle') sfx.statusChange('done');
                 a.status = 'idle';
                 document.getElementById(`bubble-${id}`).innerText = '💤';
             }
@@ -409,6 +511,7 @@
         setInterval(checkTimeCycle, 2000); // Verifica a cada 2 segundos para resposta rápida
         checkTimeCycle(); // Verifica na inicialização
 
+        sfx.init();
         initScene();
     </script>
 </body>
