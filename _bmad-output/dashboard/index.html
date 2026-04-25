@@ -45,6 +45,59 @@
             position: absolute; top: 0; left: 0; z-index: 1;
         }
 
+        /* ── DAY/NIGHT CYCLE (CSS FILTERS) ── */
+        #scene.is-night #office-floor {
+            background-image: url('assets/Escritorio_noite.png');
+            filter: none; /* A imagem gerada já é noturna */
+        }
+        
+        /* O objeto da luminária (ponto de luz) na mesa */
+        #scene.is-night .workspace::before {
+            content: '';
+            position: absolute;
+            width: 6px; height: 3px;
+            background-color: #FFFDE7;
+            border-radius: 3px 3px 0 0;
+            top: 30%; left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 6px 3px rgba(255, 214, 0, 0.9);
+            z-index: 6; /* Acima da mesa */
+        }
+
+        /* O cone de luz iluminando a área */
+        #scene.is-night .workspace::after {
+            content: '';
+            position: absolute;
+            width: 120px; height: 120px;
+            background: radial-gradient(circle, rgba(255, 214, 0, 0.15) 0%, rgba(255, 214, 0, 0) 60%);
+            border-radius: 50%;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Personagens com cores normais, iluminados pela luminária */
+        #scene.is-night .pa-desk:not(.state-working):not(.state-waiting),
+        #scene.is-night .agent:not(.state-working):not(.state-waiting) {
+            filter: brightness(0.95) sepia(0.2) saturate(1.2);
+        }
+
+        /* Luzes intensas durante a noite para os ativos */
+        #scene.is-night .pa-desk.state-working {
+            filter: drop-shadow(0 0 10px #00E676) drop-shadow(0 0 20px #00E676) brightness(1.2);
+        }
+        #scene.is-night .agent.state-working {
+            filter: drop-shadow(0 0 5px #00E676) drop-shadow(0 0 15px #00E676) brightness(1.2);
+        }
+
+        #scene.is-night .pa-desk.state-waiting {
+            filter: drop-shadow(0 0 10px #FFD600) drop-shadow(0 0 20px #FFD600) brightness(1.2);
+        }
+        #scene.is-night .agent.state-waiting {
+            filter: drop-shadow(0 0 5px #FFD600) drop-shadow(0 0 15px #FFD600) brightness(1.2);
+        }
+
         /* ── WORKSPACES (Baias fixas) ── */
         #workspaces-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -341,6 +394,20 @@
             } catch (e) { console.error('[POLLING] Erro:', e); }
         }
         setInterval(pollState, 3000);
+
+        // --- DAY/NIGHT CYCLE ---
+        function checkTimeCycle() {
+            const hour = new Date().getHours();
+            const scene = document.getElementById('scene');
+            // Considera noite das 18:00 às 05:59
+            if (hour >= 18 || hour < 6) {
+                scene.classList.add('is-night');
+            } else {
+                scene.classList.remove('is-night');
+            }
+        }
+        setInterval(checkTimeCycle, 2000); // Verifica a cada 2 segundos para resposta rápida
+        checkTimeCycle(); // Verifica na inicialização
 
         initScene();
     </script>
