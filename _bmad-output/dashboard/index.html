@@ -276,6 +276,26 @@
             border-radius: 4px; border: 2px solid #111; min-height: 60px;
             font-size: 9px; line-height: 1.6;
         }
+
+        /* ── SPEECH BUBBLE (Fofoca) ── */
+        .speech-bubble {
+            position: absolute; bottom: 85px; left: 50%; transform: translateX(-50%) scale(0);
+            background: #fff; border: 2px solid #000; border-radius: 6px;
+            padding: 8px 10px; color: #000; font-family: 'Press Start 2P', cursive;
+            font-size: 8px; line-height: 1.4; width: 140px; text-align: center;
+            z-index: 50; box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+            opacity: 0; pointer-events: none;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s;
+        }
+        .speech-bubble::after {
+            content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+            border-width: 6px 6px 0; border-style: solid; border-color: #000 transparent transparent transparent;
+        }
+        .speech-bubble::before {
+            content: ''; position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%);
+            border-width: 4px 4px 0; border-style: solid; border-color: #fff transparent transparent transparent; z-index: 1;
+        }
+        .speech-bubble.active { transform: translateX(-50%) scale(1); opacity: 1; }
     </style>
 </head>
 <body>
@@ -492,6 +512,117 @@
             if(e.target.id === 'pokedex-overlay') closePokedex();
         });
 
+        // --- GOSSIP ENGINE (Fofoca de Escritório) ---
+        const gossipsData = [
+            { lines: [{ a: 'quinn', text: "A feature que você subiu quebrou tudo." }, { a: 'barry', text: "Na minha máquina funcionou perfeito." }, { a: 'quinn', text: "Não vamos entregar sua máquina pro cliente." }] },
+            { lines: [{ a: 'john', text: "Boos, dá pra espremer mais 15 points na sprint?" }, { a: 'boos', text: "Claro, logo após pararmos o tempo." }] },
+            { lines: [{ a: 'winston', text: "A nova infra tem 45 microserviços." }, { a: 'amelia', text: "Winston, é só um form de contato." }, { a: 'winston', text: "Falta visão de escalabilidade em você." }] },
+            { lines: [{ a: 'sally', text: "O botão tá 3 pixels fora de alinhamento." }, { a: 'barry', text: "É design responsivo orgânico, confia." }, { a: 'sally', text: "Isso se chama 'Vou chorar no banho'." }] },
+            { lines: [{ a: 'bob', text: "Não esqueçam de mover os cards no Jira." }, { a: 'mary', text: "Calculando a chance de continuarmos ignorando o Jira..." }, { a: 'bob', text: "Vocês quebram meu coração." }] },
+            { lines: [{ a: 'paige', text: "Escreveu 'excessão' com SS no commit." }, { a: 'amelia', text: "O compilador rodou, é isso que importa." }, { a: 'paige', text: "A máquina aceita, a gramática não." }] },
+            { lines: [{ a: 'mary', text: "Quanto tempo falta pra sexta?" }, { a: 'john', text: "Temos deploy na sexta." }, { a: 'mary', text: "Cancele a sexta-feira. Agora." }] },
+            { lines: [{ a: 'sally', text: "O design precisa respirar." }, { a: 'john', text: "O prazo de entrega amanhã não respira." }] },
+            { lines: [{ a: 'amelia', text: "Tabs ou Spaces?" }, { a: 'barry', text: "Spaces, obviamente. Sou civilizado." }, { a: 'amelia', text: "Nunca mais dirija a palavra a mim." }] },
+            { lines: [{ a: 'quinn', text: "Achei um edge case na arquitetura." }, { a: 'winston', text: "Impossível, prove." }, { a: 'quinn', text: "Mandei 45 prints no Slack." }] },
+            { lines: [{ a: 'bob', text: "A daily durou 45 minutos." }, { a: 'boos', text: "Isso virou um podcast corporativo." }] },
+            { lines: [{ a: 'mary', text: "Dados indicam que ninguém lê a documentação." }, { a: 'paige', text: "Não destrua meus sonhos antes do almoço." }] },
+            { lines: [{ a: 'barry', text: "E se botarmos os dados num JSON local?" }, { a: 'winston', text: "Choro sabendo que você tem acesso ao repo." }] },
+            { lines: [{ a: 'quinn', text: "Não vou aprovar. Tem 12 bugs críticos." }, { a: 'john', text: "Mas já vendemos a feature..." }, { a: 'quinn', text: "Devolver o dinheiro é problema seu." }] },
+            { lines: [{ a: 'amelia', text: "Bob, a retrospectiva é obrigatória?" }, { a: 'bob', text: "Se quiser crescer como equipe, sim." }, { a: 'amelia', text: "Prefiro ficar estagnada em paz." }] },
+            { lines: [{ a: 'boos', text: "Quem derrubou o banco de staging?" }, { a: 'mary', text: "Fui eu. O gráfico precisava de quedas." }] },
+            { lines: [{ a: 'sally', text: "Por que a fonte não é Inter?" }, { a: 'amelia', text: "O navegador achou Comic Sans mais alegre." }] },
+            { lines: [{ a: 'paige', text: "A User Story parece escrita por uma criança." }, { a: 'john', text: "O cliente não liga pra vírgulas." }, { a: 'paige', text: "Mas eu me importo. Profundamente." }] },
+            { lines: [{ a: 'barry', text: "Fiz um script python pra te ajudar." }, { a: 'mary', text: "Obrigada, mais tempo livre pra criticar seu código." }] },
+            { lines: [{ a: 'boos', text: "A startup vai pivotar de novo..." }, { a: 'john', text: "Depende do que o investidor sonhou hoje." }] },
+            { lines: [{ a: 'bob', text: "Qual a estimativa atualizada da task?" }, { a: 'barry', text: "Entre 1 hora e 4 meses, Bob." }] },
+            { lines: [{ a: 'quinn', text: "O novo modal quebra no IE11." }, { a: 'sally', text: "Quem usa IE11 merece tela quebrada." }] },
+            { lines: [{ a: 'winston', text: "Precisamos refatorar o monolito em Go." }, { a: 'john', text: "Temos tempo?" }, { a: 'winston', text: "Não, mas eu vou fazer mesmo assim." }] },
+            { lines: [{ a: 'paige', text: "O que é 'Variavel de Ambiente Xablau'?" }, { a: 'barry', text: "Piada interna. Por favor, finja que não viu." }] },
+            { lines: [{ a: 'sally', text: "Esse diagrama da AWS precisa de espaço." }, { a: 'winston', text: "O servidor não tem sentimentos, só processa bits." }] },
+            { lines: [{ a: 'mary', text: "Os KPIs despencaram 20%." }, { a: 'john', text: "Dá pra pintar o gráfico de verde?" }, { a: 'mary', text: "Sou analista, não mágica, John." }] },
+            { lines: [{ a: 'amelia', text: "Deixou console.log em produção de novo?" }, { a: 'barry', text: "É a nossa telemetria customizada." }] },
+            { lines: [{ a: 'quinn', text: "A regressão falhou em 50 pontos." }, { a: 'bob', text: "Ótimo, são 'oportunidades de melhoria'." }] },
+            { lines: [{ a: 'john', text: "Dá pra colocar a logo enorme e neon?" }, { a: 'sally', text: "Meu currículo diz que não." }] },
+            { lines: [{ a: 'boos', text: "Usou Kubernetes pra uma lading page?" }, { a: 'winston', text: "Precaução básica contra o apocalipse." }] },
+            { lines: [{ a: 'quinn', text: "Por que tem um 'TODO' de 2022 no código?" }, { a: 'amelia', text: "É código histórico, não apagamos o passado." }] },
+            { lines: [{ a: 'john', text: "O cliente quer o botão vermelho." }, { a: 'sally', text: "Vermelho é erro. Eu me recuso." }] },
+            { lines: [{ a: 'winston', text: "A fatura da AWS chegou a 10 mil dólares." }, { a: 'boos', text: "Winston, o que você fez?" }, { a: 'winston', text: "Inovei." }] },
+            { lines: [{ a: 'mary', text: "O banco de dados está lento." }, { a: 'barry', text: "Coloquei um 'SELECT *' dentro de um loop." }, { a: 'mary', text: "Eu te odeio." }] },
+            { lines: [{ a: 'paige', text: "Bob, 'sinergia ágil' não significa nada." }, { a: 'bob', text: "É sobre o mindset da equipe, Paige." }] },
+            { lines: [{ a: 'amelia', text: "Dark mode ou Light mode?" }, { a: 'barry', text: "Quem usa Light mode não tem alma." }] },
+            { lines: [{ a: 'john', text: "A feature está pronta?" }, { a: 'quinn', text: "Minha definição de pronta é 'funciona'." }, { a: 'john', text: "Então..." }, { a: 'quinn', text: "Então não." }] },
+            { lines: [{ a: 'winston', text: "Barry, você leu a documentação da API?" }, { a: 'barry', text: "StackOverflow resolve tudo, mestre." }] },
+            { lines: [{ a: 'sally', text: "Esse seu texto quebrou meu layout." }, { a: 'paige', text: "E seu layout limitou minha poesia corporativa." }] },
+            { lines: [{ a: 'bob', text: "Sem apontar dedos na retrospectiva." }, { a: 'quinn', text: "Mas eu tenho uma lista anotada de quem errou." }] },
+            { lines: [{ a: 'boos', text: "Qual a prioridade atual?" }, { a: 'john', text: "Tudo é prioridade 1." }, { a: 'boos', text: "Então nada é prioridade." }] },
+            { lines: [{ a: 'mary', text: "Winston, preciso de acesso ao banco." }, { a: 'winston', text: "Negado por motivos de segurança global." }] },
+            { lines: [{ a: 'amelia', text: "O botão não cabe na tela do mobile." }, { a: 'sally', text: "Faça caber. Use magia se necessário." }] },
+            { lines: [{ a: 'paige', text: "O que quer dizer 'var a = 1'?" }, { a: 'amelia', text: "Variável autoexplicativa." }, { a: 'paige', text: "Não para humanos." }] },
+            { lines: [{ a: 'barry', text: "Gerei esse código inteiro com a IA." }, { a: 'amelia', text: "E testou?" }, { a: 'barry', text: "Pra que? A IA não erra." }] },
+            { lines: [{ a: 'quinn', text: "O sistema caiu inteiro." }, { a: 'boos', text: "O que nós perdemos?" }, { a: 'quinn', text: "A fé na humanidade e os dados de ontem." }] },
+            { lines: [{ a: 'john', text: "Consegue cruzar os dados pra ontem?" }, { a: 'mary', text: "Só se você me der uma máquina do tempo." }] },
+            { lines: [{ a: 'winston', text: "O Ágil não escala em sistemas complexos." }, { a: 'bob', text: "Você precisa de mais post-its na sua vida." }] },
+            { lines: [{ a: 'sally', text: "As animações estão travando." }, { a: 'barry', text: "O olho humano nem nota 15 frames por segundo." }] },
+            { lines: [{ a: 'boos', text: "Vamos pedir pizza hoje?" }, { a: 'bob', text: "Só margherita, pra evitar brigas de grooming." }] }
+        ];
+
+        let isGossiping = false;
+        let gossipTypeInterval = null;
+
+        function runGossipEngine() {
+            if (isGossiping) return;
+            const idleAgents = Object.entries(agentElements).filter(([id, a]) => a.status === 'idle').map(e => e[0]);
+            if (idleAgents.length < 2) return;
+
+            const validGossips = gossipsData.filter(g => g.lines.every(l => idleAgents.includes(l.a)));
+            if (validGossips.length === 0) return;
+
+            const gossip = validGossips[Math.floor(Math.random() * validGossips.length)];
+            isGossiping = true;
+            let lineIndex = 0;
+
+            function playNextLine() {
+                if (lineIndex >= gossip.lines.length) {
+                    isGossiping = false;
+                    return;
+                }
+                const line = gossip.lines[lineIndex];
+                const bubbleEl = document.getElementById(`speech-${line.a}`);
+                const statusBubbleEl = document.getElementById(`bubble-${line.a}`);
+                
+                bubbleEl.textContent = '';
+                bubbleEl.classList.add('active');
+                if (agentElements[line.a].status === 'idle') {
+                    statusBubbleEl.textContent = '💬';
+                }
+
+                let charIndex = 0;
+                clearInterval(gossipTypeInterval);
+                
+                gossipTypeInterval = setInterval(() => {
+                    if (charIndex < line.text.length) {
+                        bubbleEl.textContent += line.text[charIndex];
+                        if (charIndex % 2 === 0) sfx.typeBlip(); 
+                        charIndex++;
+                    } else {
+                        clearInterval(gossipTypeInterval);
+                        setTimeout(() => {
+                            bubbleEl.classList.remove('active');
+                            if (agentElements[line.a].status === 'idle') {
+                                statusBubbleEl.textContent = '💤';
+                            }
+                            lineIndex++;
+                            setTimeout(playNextLine, 500); 
+                        }, 3000);
+                    }
+                }, 40);
+            }
+
+            playNextLine();
+        }
+
+        setInterval(runGossipEngine, 60000);
+
         function initScene() {
             agentsData.forEach(a => {
                 const workspace = document.createElement('div');
@@ -520,6 +651,7 @@
                 uiLayer.innerHTML = `
                     <div class="agent-label">${a.name}</div>
                     <div class="status-bubble" id="bubble-${a.id}">💤</div>
+                    <div class="speech-bubble" id="speech-${a.id}"></div>
                 `;
                 
                 workspace.appendChild(agentEl);
